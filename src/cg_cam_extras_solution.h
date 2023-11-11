@@ -43,11 +43,11 @@ inline void lookat(
 
 
 	ofVec3f N = cam - target;
-	N = N.normalized();
+	N = N.getNormalized();
 	ofVec3f U = cross(up, N);
-	U = U.normalized();
+	U = U.getNormalized();
 	ofVec3f V = cross(N, U);
-	V = V.normalized();
+	V = V.getNormalized();
 
 	GLfloat camTransformMatrix[4][4] = {
 		{U.x, V.x, N.x, 0},

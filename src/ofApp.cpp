@@ -6,14 +6,18 @@ void ofApp::setup(){
 	ofBackground(0.05, 0.05, 0.05);
 	glLineWidth(2);
 
+    maxFPS = 60;
+    maxPeriod = 1 / maxFPS;
+    lastTime = ofGetElapsedTimef();
+
 	//view
 	view = 0;
     //variable for the lens
     lens = true;
 
 	//floor parameters
-	resX = 20;
-	resY = 15;
+	resX = 30;
+	resY = 20;
     // resX = 3;
 	// resY = 3;
 	floorWidth = gw() * 0.6;
@@ -35,6 +39,8 @@ void ofApp::setup(){
 
     //mesh
     mesh = 10;
+    long unsigned mass =  6 * pow(10, 13);
+    blackhole = {0, 0, baseDepthMax+200, 0, 50, mass};
 
     baseGrid.clear();
     for(int i = 0; i < resX; i++){
@@ -44,75 +50,85 @@ void ofApp::setup(){
             ofRandom(baseHeightMin, baseHeightMax), ofRandom(baseDepthMin, baseDepthMax),
             ofRandom(0,1), ofRandom(0,1), ofRandom(0,1), 
             i* baseWidth + baseWidth * 0.5 - floorWidth * 0.5,
-            j * baseHeight + baseHeight * 0.5 - floorHeight * 0.5, 0, mesh});
+            j * baseHeight + baseHeight * 0.5 - floorHeight * 0.5, 0, mesh, blackhole});
         }
     }
-    blackhole = {0, 0, baseDepthMax, 0, 4};
 
     angle = 0;
+    inc_angle = 0;
     lookDistance = 700;
+    dis_z = 500;
 }
-  
+ 
 //--------------------------------------------------------------
 void ofApp::update(){
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    //View port for all the screen
-	glColor3f(0.5, 0.5, 0.5);
+    //FPS
+    GLdouble time = ofGetElapsedTimef();
+    GLdouble deltaTime = time - lastTime;
 
-    int lensAngle = 60;
-    GLfloat alpha = 10;
-    GLfloat beta = 1000;
+    if(deltaTime >= maxPeriod){
+        deltaTime = maxPeriod - deltaTime;
+        int lensAngle = 60;
+        GLfloat alpha = 10;
+        GLfloat beta = 1000;
 
-	//lens and perspective
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-    if(lens){
-	    perspective(lensAngle, alpha, beta);
-    }
-    else{
-        glOrtho(-gw() * 0.5, gw() * 0.5, -gh() * 0.5, gh() * 0.5, -1000, 10000);
-    }
-
-	//Camera positions
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-    glPushMatrix();//master push
-    switch (view) {
-    case 0:
-        lookat(0,0,lookDistance, 0,0,0, 0,1,0);
-        break;
-    case 1:
-        lookat(lookDistance*sin(angle),-lookDistance*cos(angle), 500+inc_z, 0,0,0, 0,0,1);
-        break;
-    case 2:
-        angle += (2*PI/360)/2;
-        lookat(lookDistance*sin(angle),-lookDistance*cos(angle), 500, 0,0,0, 0,0,1); //TODO change this do moduelar
-        break;
-    }
-
-
-	//floor
-	glPushMatrix();//floor push
-        glScalef(floorWidth, floorHeight, 1.);
-        malha_unit(resX, resY);
-	glPopMatrix();//floor pop
-
-	//skyscrapers
-	glPushMatrix();//skyscrapers master push
-        for(int i = 0; i < resX; i++){
-            for(int j = 0; j < resY; j++){
-                baseGrid[i][j].draw1();
-            }
+        //lens and perspective
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        if(lens){
+            perspective(lensAngle, alpha, beta);
         }
-	glPopMatrix();//skyscrapers master poop
+        else{
+            glOrtho(-gw() * 0.5, gw() * 0.5, -gh() * 0.5, gh() * 0.5, -1000, 10000);
+        }
 
-	glPushMatrix();//TODO sphere???
-        blackhole.draw();
-    glPopMatrix();
-glPopMatrix();//master pop
+        //Camera positions
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glPushMatrix();//master push
+        switch (view) {
+        case 0:
+            lookat(0,0,lookDistance, 0,0,0, 0,1,0);
+            break;
+        case 1:
+            dis_z += inc_z;
+            angle += inc_angle;
+            lookat(lookDistance*sin(angle),-lookDistance*cos(angle), dis_z, 0,0,0, 0,0,1);
+            break;
+        case 2:
+            dis_z += inc_z;
+            angle += (2*PI/360)/2;
+            lookat(lookDistance*sin(angle),-lookDistance*cos(angle), 500, 0,0,0, 0,0,1); //TODO change this do moduelar
+            break;
+        }
+
+
+        //floor
+        glPushMatrix();//floor push
+            glScalef(floorWidth, floorHeight, 1.);
+            glColor3f(0.5, 0.5, 0.5);
+            malha_unit(resX, resY);
+        glPopMatrix();//floor pop
+
+        //skyscrapers
+        glPushMatrix();//skyscrapers master push
+            for(int i = 0; i < resX; i++){
+                for(int j = 0; j < resY; j++){
+                    baseGrid[i][j].draw();
+                    baseGrid[i][j].blackhole = blackhole;
+                }
+            }
+        glPopMatrix();//skyscrapers master poop
+
+        glPushMatrix();
+            blackhole.draw();
+        glPopMatrix();
+    glPopMatrix();//master pop
+    }
 }
 
 //--------------------------------------------------------------
@@ -153,16 +169,16 @@ void ofApp::keyPressed(int key){
 		lens = !lens; 
 		break;
 	case OF_KEY_LEFT:
-		angle -= (2*PI/360)/2;
+		inc_angle = - (2*PI/360)/2;
 		break;
 	case OF_KEY_RIGHT:
-		angle += (2*PI/360)/2;
+		inc_angle = (2*PI/360)/2;
 		break;
 	case OF_KEY_UP:
-		inc_z+=1;
+		inc_z = 2;
 		break;
 	case OF_KEY_DOWN:
-		inc_z-=1;
+		inc_z = -2;
 		break;
     case '+':
         lookDistance-=5;
@@ -170,12 +186,40 @@ void ofApp::keyPressed(int key){
     case '-':
         lookDistance+=5;
         break;
+    case ' ':
+        blackhole.radius = 1;
+        for(int i = 0; i < resX; i++){
+            for(int j = 0; j < resY; j++){
+                baseGrid[i][j].decrement = 1;
+                if(baseGrid[i][j].deleted){
+                    baseGrid[i][j] = {ofRandom(baseWidthMin, baseWidthMax), 
+                    ofRandom(baseHeightMin, baseHeightMax), ofRandom(baseDepthMin, baseDepthMax),
+                    ofRandom(0,1), ofRandom(0,1), ofRandom(0,1), 
+                    i* baseWidth + baseWidth * 0.5 - floorWidth * 0.5,
+                    j * baseHeight + baseHeight * 0.5 - floorHeight * 0.5, 0, mesh, blackhole};
+                }
+            }
+        }
+        break;
 	}
 }
 
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key){
-
+    switch (key) {
+    case OF_KEY_UP:
+		inc_z = 0;
+		break;
+	case OF_KEY_DOWN:
+		inc_z = 0;
+		break;
+    case OF_KEY_LEFT:
+		inc_angle = 0;
+		break;
+	case OF_KEY_RIGHT:
+		inc_angle = 0;
+		break;
+    }
 }
 
 //--------------------------------------------------------------

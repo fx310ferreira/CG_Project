@@ -1,3 +1,6 @@
+// Frederico Ferreira 2021217116
+
+
 #pragma once
 
 #include "ofMain.h"
@@ -42,16 +45,25 @@ class ofApp : public ofBaseApp{
 		ofVec3f basePos;
 
 		std::vector<std::vector<Skyscraper>> baseGrid;
-		Blackhole blackhole = {0,0,0, 0,0};
+		Blackhole blackhole;
 
-		int reset;
+		GLint reset;
 		bool grid;
 
 		//view
-		int view;
-		double angle, inc_z;
+		GLint view;
 		bool lens = true;
-		int mesh;
-		int lookDistance;
-		double count;
+		GLint mesh;
+		GLint lookDistance;
+		GLdouble count;
+
+		// FPS
+		GLdouble maxFPS;
+		GLdouble maxPeriod;
+		GLdouble lastTime;
+
+		//camera
+		GLdouble angle, dis_z;
+		GLdouble inc_angle, inc_z;
+
 };
